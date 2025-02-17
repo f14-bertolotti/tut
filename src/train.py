@@ -29,6 +29,8 @@ def train(
         restore     : typing.Tuple[str,int]|None = None   ,
     ):
 
+    torch.set_float32_matmul_precision('high')
+
     utils.save_state(f"{dir}/state.json")
 
     # seed everything 
@@ -36,7 +38,13 @@ def train(
 
     # instantiate the model
     compiler = torch.compile if compile else lambda x: x
-    model    = compiler(models.Bert(tie_word_embeddings = True).to(device))
+    model    = compiler(models.Bert(
+        hidden_size = 128,
+        num_hidden_layers = 6,
+        num_attention_heads = 2,
+        intermediate_size = 512,
+        tie_word_embeddings = True
+    ).to(device))
 
     # stuff for training
     lossfn = torch.nn.CrossEntropyLoss()
