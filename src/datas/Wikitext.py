@@ -10,11 +10,9 @@ class Dataset(torch.utils.data.Dataset):
             max_length     : int = 128    ,
             map_batch_size : int = 2000   ,
             map_proc       : int = 4      ,
-            device         : str = "cuda" ,
         ):
 
         self.split      = split
-        self.device     = device
         self.max_length = max_length
 
         self.raw_dataset = datasets.load_dataset("Salesforce/wikitext", "wikitext-103-v1", split=split)
