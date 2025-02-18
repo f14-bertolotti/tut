@@ -135,6 +135,19 @@ def train(
                 )
             progress_bar.update(1)
 
+    valid(
+        model        = model        ,
+        loss         = validloss    ,
+        loader       = valid_loader ,
+        logger       = validlogger  ,
+        device       = device       ,
+        progress_bar = progress_bar ,
+        epoch        = -1           ,
+    )
+    model.save(f"{dir}/lastmodel.pth")
+    torch.save(optim.state_dict(), f"{dir}/lastoptim.pth")
+
+
 if __name__ == "__main__":
     train()
 

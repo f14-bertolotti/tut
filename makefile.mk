@@ -6,14 +6,14 @@ venv/bin/python:
 
 
 # Trains a super tiny BERT for testing purposes
-data/bert-xxs/trained: venv/bin/python
+data/bert-xxs/lastmodel.pth: venv/bin/python
 	mkdir -p $(dir $@)
 	venv/bin/python src/train.py \
 		--dir $(dir $@) \
 		--etc 10000 \
 		--etv 10000 \
 		--epochs 2 \
-		--train-batch-size 2048 \
+		--train-batch-size 128 \
 		--valid-batch-size 32 \
 		--learning-rate 0.01 \
 		--device $(DEVICE) \
@@ -22,4 +22,3 @@ data/bert-xxs/trained: venv/bin/python
 		--arch "num_hidden_layers" 1 \
 		--arch "num_attention_heads" 1 \
 		--arch "tie_word_embeddings" True
-	touch $@
