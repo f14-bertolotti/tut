@@ -42,17 +42,31 @@ class Model(torch.nn.Module):
             use_cache                    = use_cache                    ,
             tie_word_embeddings          = tie_word_embeddings          ,
         )
-        self.BertModel = transformers.BertForMaskedLM(self.BertConfig)
+        self.encoder = transformers.BertForMaskedLM(self.BertConfig)
 
     def forward(self, input_ids, token_type_ids, attention_mask):
-        return self.BertModel(
+        return self.encoder(
             input_ids      = input_ids      ,
             token_type_ids = token_type_ids ,
             attention_mask = attention_mask ,
         ).logits
 
+    def get_input_embeddings(self):
+        return self.encoder.get_input_embeddings()
+
+    def get_output_embeddings(self):
+        return self.encoder.cls.predictions.decoder
+
+    @torch.no_grad()
+    def untie(self):
+        embeddings = self.get_input_embeddings().weight.detach()
+        self. get_input_embeddings().weight[:] = torch.nn.Parameter(embeddings.clone(), requires_grad=True)
+        self.get_output_embeddings().weight[:] = torch.nn.Parameter(embeddings.clone(), requires_grad=True)
+
+    @torch.no_grad()
     def save(self, path:str):
         torch.save(self.state_dict(), path)
 
+    @torch.no_grad()
     def load(self, path:str):
         self.load_state_dict(torch.load(path))
