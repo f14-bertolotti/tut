@@ -11,7 +11,7 @@ def valid(
         device       : str                         ,
         logger       : logging.Logger              ,
         epoch        : int                         ,
-        progress_bar : tqdm.tqdm                   ,
+        progress_bar : tqdm.tqdm | None = None     ,
     ):
     model.eval()
     starttime = time.time()
@@ -25,17 +25,20 @@ def valid(
         )
         cumloss  += loss(logits.view(-1, logits.size(-1)), batch["labels"].view(-1)).item()
         cumacc   += (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().sum().item()
-        preds += (batch["labels"] != -100).float().sum()
-        progress_bar.set_description(f"valid - e {epoch: <2}, s:{i: <5}, l: {cumloss/preds:5.3f}, a: {cumacc/preds:5.3f}")
+        preds += (batch["labels"] != -100).float().sum().item()
+        if progress_bar: progress_bar.set_description(f"valid - e {epoch: <2}, s:{i: <5}, l: {cumloss/preds:5.3f}, a: {cumacc/preds:5.3f}")
+
     logger.info({
         "epoch" : epoch,
-        "step"  : progress_bar.n,
         "loss"  : cumloss / preds,
         "acc"   : cumacc  / preds,
         "preds" : preds,
         "time"  : time.time() - starttime,
         "valid" : True,
-    })
+        } | ({"step": progress_bar.n} if progress_bar else {}))
     model.train()
 
-
+    return { 
+        "loss" : cumloss / preds, 
+        "accuracy" : cumacc / preds, 
+    }

@@ -80,7 +80,7 @@ def train(
         for batch in train_loader:
 
             # skip already seen steps if restoring
-            # and load the model and optim state
+            # this is not great, but i don't know a better way 
             if restore is not None and progress_bar.n < restore[1]: 
                 progress_bar.update(1)
 
@@ -142,7 +142,7 @@ def train(
         logger       = validlogger  ,
         device       = device       ,
         progress_bar = progress_bar ,
-        epoch        = -1           ,
+        epoch        = epoch        ,
     )
     model.save(f"{dir}/lastmodel.pth")
     model.save(f"{dir}/model{progress_bar.n-1}.pth")
