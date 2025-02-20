@@ -145,7 +145,9 @@ def train(
         epoch        = -1           ,
     )
     model.save(f"{dir}/lastmodel.pth")
+    model.save(f"{dir}/model{progress_bar.n-1}.pth")
     torch.save(optim.state_dict(), f"{dir}/lastoptim.pth")
+    torch.save(optim.state_dict(), f"{dir}/optim{progress_bar.n-1}.pth")
 
 
 if __name__ == "__main__":
