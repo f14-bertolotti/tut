@@ -22,8 +22,8 @@ import tqdm
 @click.option("--etv"             , "etv"             , type=int                           , default=None   , help="epochs to wait before validating"  )
 @click.option("--restore"         , "restore"         , type=(click.Path(), int)           , default=None   , help="Path to restore from and step num" )
 @click.option("--num-workers"     , "num_workers"     , type=int                           , default=0      , help="Number of workers for dataloader"  )
-@click.option("--learning-rate"   , "learning_rate"   , type=float                         , default=1e-5   , help="Learning rate"                     )
-@click.option("--arch"            , "arch"            , type=(str, Any(int,float,bool,str)), default=[] , help="Model architecture"                , multiple=True)
+@click.option("--arch"            , "arch"            , type=(str, Any(int,float,bool,str)), default=[] , help="Model architecture", multiple=True)
+@click.option("--opti"            , "opti"            , type=(str, Any(int,float,bool,str)), default=[] , help="Optimizer"         , multiple=True)
 def train(
         seed            : int                                      = 42     ,
         train_batch_size: int                                      = 1024   ,
@@ -35,9 +35,9 @@ def train(
         etv             : Optional[int]                            = None   ,
         device          : str                                      = "cuda" ,
         num_workers     : int                                      = 0      ,
-        learning_rate   : float                                    = 1e-5   ,
         restore         : Optional[Tuple[str,int]]                 = None   ,
         arch            : Optional[Tuple[str, int|float|bool|str]] = None   ,
+        opti            : Optional[Tuple[str, int|float|bool|str]] = None   ,
     ):
 
     torch.set_float32_matmul_precision('high')
@@ -54,7 +54,7 @@ def train(
     # stuff for training
     trainloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
     validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="sum")
-    optim       = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optim       = torch.optim.Adam(model.parameters(), **dict(opti))
     trainlogger = utils.get_logger(f"{dir}/train.jsonl")
     validlogger = utils.get_logger(f"{dir}/valid.jsonl")
     starttime   = time.time()
