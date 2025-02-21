@@ -89,7 +89,6 @@ def train(
                     try: optim.load_state_dict(torch.load(f"{restore[0]}/optim{restore[1]}.pth"))
                     except ValueError: pass
                     if dict(arch)["tie_word_embeddings"] == False: model.untie()
-                    restore = None
 
                 continue
 
