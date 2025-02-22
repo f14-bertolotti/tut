@@ -22,7 +22,7 @@ class Model(torch.nn.Module):
 
 
         self.input_embeddings    = torch.nn.Embedding(vocab_size, hidden_size, padding_idx=0)
-        self.position_embeddings = torch.nn.Embedding(max_position_embeddings, hidden_size)
+        self.position_embeddings = torch.nn.Parameter(torch.nn.init.normal_(torch.empty(max_position_embeddings, hidden_size), mean=0.0, std=initializer_range), requires_grad=True)
         self.output_embeddings   = self.input_embeddings.weight if tie_word_embeddings else torch.nn.Parameter(torch.nn.init.normal_(torch.empty(vocab_size, hidden_size), mean=0.0, std=initializer_range), requires_grad=True)
 
         self.encoder = torch.nn.TransformerEncoder(
@@ -41,15 +41,13 @@ class Model(torch.nn.Module):
         # intialize weights
         self.   input_embeddings.weight.data.normal_(mean=0.0, std=initializer_range)
         self.  output_embeddings       .data.normal_(mean=0.0, std=initializer_range)
-        self.position_embeddings.weight.data.normal_(mean=0.0, std=initializer_range)
         self.   input_embeddings.weight.data[0].zero_()
         self.  output_embeddings       .data[0].zero_()
 
-
     def forward(self, input_ids, token_type_ids, attention_mask):
-        embeddings = self.input_embeddings(input_ids) + self.position_embeddings.weight[:input_ids.size(1)]
-        encoded = self.encoder(embeddings, src_key_padding_mask = attention_mask.bool())
-        logits = encoded @ self.output_embeddings.T
+        embeddings = self.input_embeddings(input_ids) + self.position_embeddings[:input_ids.size(1)]
+        encoded = self.encoder(embeddings, src_key_padding_mask = attention_mask.bool().logical_not())
+        logits = encoded @ self.output_embeddings.T 
         return logits
 
     def get_input_embeddings(self):

@@ -10,13 +10,14 @@ data/transformer/lastmodel.pth: venv/bin/python
 		--dir $(dir $@) \
 		--etc 100000 \
 		--etv 1000 \
-		--epochs 30 \
+		--epochs 3000 \
 		--train-batch-size 128 \
 		--valid-batch-size 64 \
-		--grad-acc-steps 64 \
+		--grad-acc-steps 1 \
 		--device $(DEVICE) \
-		--compile True \
-		--opti "name" "Adam" \
+		--compile False \
+		--data "name" "Wikitext" \
+		--opti "name" "AdamW" \
 		--opti "lr" 0.001 \
 		--opti "weight_decay" 0.01 \
 		--arch "name" "Transformer" \

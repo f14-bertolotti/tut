@@ -1,1 +1,1 @@
-from datas.Wikitext import Dataset as WikitextDataset
+from datas.Wikitext import Dataset as Wikitext

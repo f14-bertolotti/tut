@@ -25,6 +25,7 @@ import tqdm
 @click.option("--grad-acc-steps"  , "grad_acc_steps"  , type=int                 , default=1      , help="Gradient accumulation steps"       )
 @click.option("--arch"            , "arch"            , type=(str, utils.Any())  , default=[]     , help="Model architecture", multiple=True)
 @click.option("--opti"            , "opti"            , type=(str, utils.Any())  , default=[]     , help="Optimizer"         , multiple=True)
+@click.option("--data"            , "data"            , type=(str, utils.Any())  , default=[]     , help="Dataset"           , multiple=True)
 def train(
         seed            : int                       = 42     ,
         train_batch_size: int                       = 1024   ,
@@ -40,11 +41,14 @@ def train(
         grad_acc_steps  : int                       = 1      ,
         arch            : Optional[Tuple[str, Any]] = None   ,
         opti            : Optional[Tuple[str, Any]] = None   ,
+        data            : Optional[Tuple[str, Any]] = None   ,
     ):
     arch_params :dict[str,int|float|bool|str] = dict(arch)
     opti_params :dict[str,int|float|bool|str] = dict(opti)
+    data_params :dict[str,int|float|bool|str] = dict(data)
     arch_name : str = str(arch_params.pop("name"))
     opti_name : str = str(opti_params.pop("name"))
+    data_name : str = str(data_params.pop("name"))
 
     torch.set_float32_matmul_precision('high')
 
@@ -53,21 +57,9 @@ def train(
     # seed everything 
     utils.seed_all(seed)
 
-    # instantiate the model
-    compiler = torch.compile if compile else lambda x: x
-    model    = compiler(getattr(models, arch_name)(**arch_params).to(device))
-
-    # stuff for training
-    trainloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
-    validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
-    optim       = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
-    trainlogger = utils.get_logger(f"{dir}/train.jsonl")
-    validlogger = utils.get_logger(f"{dir}/valid.jsonl")
-    starttime   = time.time()
-
     # instantiate the dataset
     train_loader = torch.utils.data.DataLoader(
-        dataset := datas.WikitextDataset(split="train"),
+        dataset := getattr(datas,data_name)(split="train", **data_params),
         batch_size     = train_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
         num_workers    = num_workers         ,
@@ -75,11 +67,24 @@ def train(
         drop_last      = True                ,
     )
     valid_loader = torch.utils.data.DataLoader(
-        dataset := datas.WikitextDataset(split="validation"),
+        dataset := getattr(datas,data_name)(split="validation", **data_params),
         batch_size     = valid_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
         num_workers    = num_workers         ,
     )
+
+    # stuff for training
+    trainloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
+    validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
+    trainlogger = utils.get_logger(f"{dir}/train.jsonl")
+    validlogger = utils.get_logger(f"{dir}/valid.jsonl")
+    starttime   = time.time()
+
+    # instantiate the model
+    compiler = torch.compile if compile else lambda x: x
+    model    = compiler(getattr(models, arch_name)(vocab_size=dataset.tokenizer.vocab_size, **arch_params).to(device))
+    optim    = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
+
 
     progress_bar = tqdm.tqdm(total=epochs * len(train_loader), desc='steps')
         
@@ -96,12 +101,12 @@ def train(
                     model.load(f"{restore[0]}/model{restore[1]}.pth")
                     try: optim.load_state_dict(torch.load(f"{restore[0]}/optim{restore[1]}.pth"))
                     except ValueError: pass
-                    if dict(arch)["tie_word_embeddings"] == False: model.untie()
+                    if arch_params["tie_word_embeddings"] == False: model.untie()
 
                 continue
 
             # move batch to device
-            batch  = {k: v.to(device, non_blocking=True) for k,v in batch.items()}
+            batch  = {k: v.to(device) for k,v in batch.items()}
 
             # train step
             logits = model(
@@ -118,7 +123,7 @@ def train(
                 optim.step()
                 optim.zero_grad()
             
-            progress_bar.set_description(f"train - e {epoch: <2}, s:{progress_bar.n: <5}, l: {loss.item():5.3f}, a: {acc.item():5.3f}")
+            progress_bar.set_description(f"train - e {epoch: <2}, s:{progress_bar.n: <5}, l: {loss.item() * grad_acc_steps:5.3f}, a: {acc.item():5.3f}")
 
             # save checkpoint
             if etc is not None and progress_bar.n % etc == 0:

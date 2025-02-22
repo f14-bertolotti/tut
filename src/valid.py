@@ -34,7 +34,6 @@ def valid(
         "acc"   : cumacc  / preds,
         "preds" : preds,
         "time"  : time.time() - starttime,
-        "valid" : True,
         } | ({"step": progress_bar.n} if progress_bar else {}))
     model.train()
 
