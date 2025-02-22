@@ -12,7 +12,7 @@ data/transformer/lastmodel.pth: venv/bin/python
 		--etv 1000 \
 		--epochs 30 \
 		--train-batch-size 128 \
-		--valid-batch-size 32 \
+		--valid-batch-size 64 \
 		--grad-acc-steps 64 \
 		--device $(DEVICE) \
 		--compile True \

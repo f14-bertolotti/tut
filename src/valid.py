@@ -23,7 +23,7 @@ def valid(
             batch["token_type_ids" ],
             batch["attention_mask" ],
         )
-        cumloss  += loss(logits.view(-1, logits.size(-1)), batch["labels"].view(-1)).item()
+        cumloss  += loss(logits[batch["labels"] != -100], batch["labels"][batch["labels"] != -100]).nan_to_num().sum().item()
         cumacc   += (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().sum().item()
         preds += (batch["labels"] != -100).float().sum().item()
         if progress_bar: progress_bar.set_description(f"valid - e {epoch: <2}, s:{i: <5}, l: {cumloss/preds:5.3f}, a: {cumacc/preds:5.3f}")

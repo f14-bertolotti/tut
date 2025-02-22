@@ -28,7 +28,7 @@ class Dataset(torch.utils.data.Dataset):
 
         self.collator = transformers.DataCollatorForLanguageModeling(
             tokenizer       = self.tokenizer ,
-            mlm_probability = 0.15           ,
+            mlm_probability = 0.25           ,
             mlm             = True           ,
         )
 

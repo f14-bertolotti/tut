@@ -59,7 +59,7 @@ def train(
 
     # stuff for training
     trainloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
-    validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="sum")
+    validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="none")
     optim       = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
     trainlogger = utils.get_logger(f"{dir}/train.jsonl")
     validlogger = utils.get_logger(f"{dir}/valid.jsonl")
@@ -109,7 +109,7 @@ def train(
                 batch["token_type_ids" ],
                 batch["attention_mask" ],
             )
-            loss = trainloss(logits.view(-1, logits.size(-1)), batch["labels"].view(-1)) / grad_acc_steps
+            loss = trainloss(logits[batch["labels"] != -100], batch["labels"][batch["labels"] != -100]).nan_to_num().mean() / grad_acc_steps
             acc  = (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().mean()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
