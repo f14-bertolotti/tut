@@ -1,6 +1,6 @@
-from typing import Tuple, Optional
-from utils import Any
+from typing import Tuple, Any, Optional
 from valid import valid
+from functools import partial
 import models
 import utils
 import torch
@@ -11,36 +11,40 @@ import tqdm
 
 
 @click.command()
-@click.option("--seed"            , "seed"            , type=int                           , default=42     , help="Random seed"                       )
-@click.option("--train-batch-size", "train_batch_size", type=int                           , default=1024   , help="train batch size"                  )
-@click.option("--valid-batch-size", "valid_batch_size", type=int                           , default=256    , help="valid batch size"                  )
-@click.option("--epochs"          , "epochs"          , type=int                           , default=10     , help="Number of epochs"                  )
-@click.option("--device"          , "device"          , type=str                           , default="cuda" , help="Device to train on"                )
-@click.option("--compile"         , "compile"         , type=bool                          , default=False  , help="Compile the model"                 )
-@click.option("--dir"             , "dir"             , type=click.Path()                  , default="data" , help="Directory to save data"            )
-@click.option("--etc"             , "etc"             , type=int                           , default=None   , help="epochs to wait before saving"      )
-@click.option("--etv"             , "etv"             , type=int                           , default=None   , help="epochs to wait before validating"  )
-@click.option("--restore"         , "restore"         , type=(click.Path(), int)           , default=None   , help="Path to restore from and step num" )
-@click.option("--num-workers"     , "num_workers"     , type=int                           , default=0      , help="Number of workers for dataloader"  )
-@click.option("--grad-acc-steps"  , "grad_acc_steps"  , type=int                           , default=1      , help="Gradient accumulation steps"       )
-@click.option("--arch"            , "arch"            , type=(str, Any(int,float,bool,str)), default=[] , help="Model architecture", multiple=True)
-@click.option("--opti"            , "opti"            , type=(str, Any(int,float,bool,str)), default=[] , help="Optimizer"         , multiple=True)
+@click.option("--seed"            , "seed"            , type=int                 , default=42     , help="Random seed"                       )
+@click.option("--train-batch-size", "train_batch_size", type=int                 , default=1024   , help="train batch size"                  )
+@click.option("--valid-batch-size", "valid_batch_size", type=int                 , default=256    , help="valid batch size"                  )
+@click.option("--epochs"          , "epochs"          , type=int                 , default=10     , help="Number of epochs"                  )
+@click.option("--device"          , "device"          , type=str                 , default="cuda" , help="Device to train on"                )
+@click.option("--compile"         , "compile"         , type=bool                , default=False  , help="Compile the model"                 )
+@click.option("--dir"             , "dir"             , type=click.Path()        , default="data" , help="Directory to save data"            )
+@click.option("--etc"             , "etc"             , type=int                 , default=None   , help="epochs to wait before saving"      )
+@click.option("--etv"             , "etv"             , type=int                 , default=None   , help="epochs to wait before validating"  )
+@click.option("--restore"         , "restore"         , type=(click.Path(), int) , default=None   , help="Path to restore from and step num" )
+@click.option("--num-workers"     , "num_workers"     , type=int                 , default=0      , help="Number of workers for dataloader"  )
+@click.option("--grad-acc-steps"  , "grad_acc_steps"  , type=int                 , default=1      , help="Gradient accumulation steps"       )
+@click.option("--arch"            , "arch"            , type=(str, utils.Any())  , default=[]     , help="Model architecture", multiple=True)
+@click.option("--opti"            , "opti"            , type=(str, utils.Any())  , default=[]     , help="Optimizer"         , multiple=True)
 def train(
-        seed            : int                                      = 42     ,
-        train_batch_size: int                                      = 1024   ,
-        valid_batch_size: int                                      = 256    ,
-        epochs          : int                                      = 10     ,
-        compile         : bool                                     = False  ,
-        dir             : str                                      = "data" ,
-        etc             : Optional[int]                            = None   ,
-        etv             : Optional[int]                            = None   ,
-        device          : str                                      = "cuda" ,
-        num_workers     : int                                      = 0      ,
-        restore         : Optional[Tuple[str,int]]                 = None   ,
-        grad_acc_steps  : int                                      = 1      ,
-        arch            : Optional[Tuple[str, int|float|bool|str]] = None   ,
-        opti            : Optional[Tuple[str, int|float|bool|str]] = None   ,
+        seed            : int                       = 42     ,
+        train_batch_size: int                       = 1024   ,
+        valid_batch_size: int                       = 256    ,
+        epochs          : int                       = 10     ,
+        compile         : bool                      = False  ,
+        dir             : str                       = "data" ,
+        etc             : Optional[int]             = None   ,
+        etv             : Optional[int]             = None   ,
+        device          : str                       = "cuda" ,
+        num_workers     : int                       = 0      ,
+        restore         : Optional[Tuple[str,int]]  = None   ,
+        grad_acc_steps  : int                       = 1      ,
+        arch            : Optional[Tuple[str, Any]] = None   ,
+        opti            : Optional[Tuple[str, Any]] = None   ,
     ):
+    arch_params :dict[str,int|float|bool|str] = dict(arch)
+    opti_params :dict[str,int|float|bool|str] = dict(opti)
+    arch_name : str = str(arch_params.pop("name"))
+    opti_name : str = str(opti_params.pop("name"))
 
     torch.set_float32_matmul_precision('high')
 
@@ -51,12 +55,12 @@ def train(
 
     # instantiate the model
     compiler = torch.compile if compile else lambda x: x
-    model    = compiler(models.Bert(**dict(arch)).to(device))
+    model    = compiler(getattr(models, arch_name)(**arch_params).to(device))
 
     # stuff for training
     trainloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
     validloss   = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="sum")
-    optim       = torch.optim.Adam(model.parameters(), **dict(opti))
+    optim       = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
     trainlogger = utils.get_logger(f"{dir}/train.jsonl")
     validlogger = utils.get_logger(f"{dir}/valid.jsonl")
     starttime   = time.time()
@@ -67,6 +71,8 @@ def train(
         batch_size     = train_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
         num_workers    = num_workers         ,
+        shuffle        = True                ,
+        drop_last      = True                ,
     )
     valid_loader = torch.utils.data.DataLoader(
         dataset := datas.WikitextDataset(split="validation"),
@@ -123,7 +129,7 @@ def train(
             trainlogger.info({
                 "epoch" : epoch,
                 "step"  : progress_bar.n,
-                "loss"  : loss.item(),
+                "loss"  : loss.item() * grad_acc_steps,
                 "acc"   : acc.item(),
                 "time"  : time.time() - starttime,
             })
