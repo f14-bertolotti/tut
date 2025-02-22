@@ -13,12 +13,13 @@ data/bert-m/lastmodel.pth: venv/bin/python
 		--epochs 30 \
 		--train-batch-size 128 \
 		--valid-batch-size 32 \
+		--acc-grad-steps 8 \
 		--device $(DEVICE) \
 		--compile True \
 		--opti "lr" 0.0001 \
 		--opti "weight_decay" 0.01 \
-		--arch "hidden_size" 256 \
-		--arch "intermediate_size" 1024 \
+		--arch "hidden_size" 128 \
+		--arch "intermediate_size" 512 \
 		--arch "num_hidden_layers" 4 \
 		--arch "num_attention_heads" 2 \
 		--arch "tie_word_embeddings" True

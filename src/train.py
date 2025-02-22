@@ -22,6 +22,7 @@ import tqdm
 @click.option("--etv"             , "etv"             , type=int                           , default=None   , help="epochs to wait before validating"  )
 @click.option("--restore"         , "restore"         , type=(click.Path(), int)           , default=None   , help="Path to restore from and step num" )
 @click.option("--num-workers"     , "num_workers"     , type=int                           , default=0      , help="Number of workers for dataloader"  )
+@click.option("--grad-acc-steps"  , "grad_acc_steps"  , type=int                           , default=1      , help="Gradient accumulation steps"       )
 @click.option("--arch"            , "arch"            , type=(str, Any(int,float,bool,str)), default=[] , help="Model architecture", multiple=True)
 @click.option("--opti"            , "opti"            , type=(str, Any(int,float,bool,str)), default=[] , help="Optimizer"         , multiple=True)
 def train(
@@ -36,6 +37,7 @@ def train(
         device          : str                                      = "cuda" ,
         num_workers     : int                                      = 0      ,
         restore         : Optional[Tuple[str,int]]                 = None   ,
+        grad_acc_steps  : int                                      = 1      ,
         arch            : Optional[Tuple[str, int|float|bool|str]] = None   ,
         opti            : Optional[Tuple[str, int|float|bool|str]] = None   ,
     ):
@@ -96,16 +98,20 @@ def train(
             batch  = {k: v.to(device, non_blocking=True) for k,v in batch.items()}
 
             # train step
-            optim.zero_grad()
             logits = model(
                 batch["input_ids"      ],
                 batch["token_type_ids" ],
                 batch["attention_mask" ],
             )
-            loss = trainloss(logits.view(-1, logits.size(-1)), batch["labels"].view(-1))
+            loss = trainloss(logits.view(-1, logits.size(-1)), batch["labels"].view(-1)) / grad_acc_steps
             acc  = (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().mean()
             loss.backward()
-            optim.step()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            
+            if progress_bar.n % grad_acc_steps == 0:
+                optim.step()
+                optim.zero_grad()
+            
             progress_bar.set_description(f"train - e {epoch: <2}, s:{progress_bar.n: <5}, l: {loss.item():5.3f}, a: {acc.item():5.3f}")
 
             # save checkpoint
