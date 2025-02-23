@@ -59,9 +59,9 @@ class Model(torch.nn.Module):
     @torch.no_grad()
     def untie(self):
         input_embeddings  = self.get_input_embeddings().weight.detach()
-        output_embeddings = self.get_output_embeddings().weight.detach()
+        output_embeddings = self.get_output_embeddings().detach()
         self. get_input_embeddings().weight[:] = torch.nn.Parameter( input_embeddings.clone(), requires_grad=True)
-        self.get_output_embeddings().weight[:] = torch.nn.Parameter(output_embeddings.clone(), requires_grad=True)
+        self.get_output_embeddings()[:]        = torch.nn.Parameter(output_embeddings.clone(), requires_grad=True)
 
     @torch.no_grad()
     def save(self, path:str):
