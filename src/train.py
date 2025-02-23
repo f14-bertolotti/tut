@@ -43,9 +43,9 @@ def train(
         opti            : Optional[Tuple[str, Any]] = None   ,
         data            : Optional[Tuple[str, Any]] = None   ,
     ):
-    arch_params :dict[str,int|float|bool|str] = dict(arch)
-    opti_params :dict[str,int|float|bool|str] = dict(opti)
-    data_params :dict[str,int|float|bool|str] = dict(data)
+    arch_params : dict[str,Any] = dict(arch)
+    opti_params : dict[str,Any] = dict(opti)
+    data_params : dict[str,Any] = dict(data)
     arch_name : str = str(arch_params.pop("name"))
     opti_name : str = str(opti_params.pop("name"))
     data_name : str = str(data_params.pop("name"))
