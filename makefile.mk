@@ -2,7 +2,10 @@ DEVICE="cuda:0"
 
 MODEL=Transformer
 EPOCHS=30
-MIDPOINT=100000
+ETC=100000
+RPT=100000
+COMPILE=True
+DATASIZE=None
 
 venv/bin/python:
 	virtualenv venv
@@ -12,15 +15,16 @@ data/$(MODEL)/lastmodel.pth: venv/bin/python
 	mkdir -p $(dir $@)
 	venv/bin/python src/train.py \
 		--dir $(dir $@) \
-		--etc $(MIDPOINT) \
+		--etc $(ETC) \
 		--etv 1000 \
 		--epochs $(EPOCHS) \
 		--train-batch-size 128 \
 		--valid-batch-size 64 \
 		--grad-acc-steps 1 \
 		--device $(DEVICE) \
-		--compile True \
+		--compile $(COMPILE) \
 		--data "name" "Wikitext" \
+		--data "dataset_size" $(DATASIZE) \
 		--opti "name" "AdamW" \
 		--opti "lr" 0.001 \
 		--opti "weight_decay" 0.01 \
@@ -36,15 +40,16 @@ data/$(MODEL)/mid/lastmodel.pth: data/$(MODEL)/lastmodel.pth
 	mkdir -p $(dir $@)
 	venv/bin/python src/train.py \
 		--dir $(dir $@) \
-		--etc $(MIDPOINT) \
+		--etc $(ETC) \
 		--etv 1000 \
 		--epochs $(EPOCHS) \
 		--train-batch-size 128 \
 		--valid-batch-size 64 \
 		--grad-acc-steps 1 \
 		--device $(DEVICE) \
-		--compile True \
+		--compile $(COMPILE) \
 		--data "name" "Wikitext" \
+		--data "dataset_size" $(DATASIZE) \
 		--opti "name" "AdamW" \
 		--opti "lr" 0.001 \
 		--opti "weight_decay" 0.01 \
@@ -55,4 +60,4 @@ data/$(MODEL)/mid/lastmodel.pth: data/$(MODEL)/lastmodel.pth
 		--arch "num_attention_heads" 4 \
 		--arch "initializer_range" 0.02 \
 		--arch "tie_word_embeddings" False \
-		--restore data/$(MODEL)/$(MIDPOINT)
+		--restore data/$(MODEL) $(RPT)

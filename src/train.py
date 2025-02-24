@@ -63,7 +63,7 @@ def train(
         batch_size     = train_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
         num_workers    = num_workers         ,
-        shuffle        = True                ,
+        shuffle        = False                ,
         drop_last      = True                ,
     )
     valid_loader = torch.utils.data.DataLoader(
@@ -116,9 +116,10 @@ def train(
             )
             loss = trainloss(logits[batch["labels"] != -100], batch["labels"][batch["labels"] != -100]).nan_to_num().mean() / grad_acc_steps
             acc  = (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().mean()
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-            
+
             if progress_bar.n % grad_acc_steps == 0:
                 optim.step()
                 optim.zero_grad()

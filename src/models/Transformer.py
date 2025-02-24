@@ -39,10 +39,10 @@ class Model(torch.nn.Module):
         )
 
         # intialize weights
-        self.   input_embeddings.weight.data.normal_(mean=0.0, std=initializer_range)
-        self.  output_embeddings       .data.normal_(mean=0.0, std=initializer_range)
-        self.   input_embeddings.weight.data[0].zero_()
-        self.  output_embeddings       .data[0].zero_()
+        self. input_embeddings.weight.data.normal_(mean=0.0, std=initializer_range)
+        self.output_embeddings       .data.normal_(mean=0.0, std=initializer_range)
+        self. input_embeddings.weight.data[0].zero_()
+        self.output_embeddings       .data[0].zero_()
 
     def forward(self, input_ids, token_type_ids, attention_mask):
         embeddings = self.input_embeddings(input_ids) + self.position_embeddings[:input_ids.size(1)]
