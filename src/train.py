@@ -85,11 +85,14 @@ def train(
     model    = compiler(getattr(models, arch_name)(vocab_size=dataset.tokenizer.vocab_size, **arch_params).to(device))
     optim    = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
 
-
     progress_bar = tqdm.tqdm(total=epochs * len(train_loader), desc='steps')
+    epoch = 0 if restore is None else restore[1] // len(train_loader)
+    progress_bar.n = 0 if restore is None else epoch * len(train_loader)
         
     # start training
-    for epoch in range(epochs):
+    for epoch in range(epoch,epochs):
+        utils.seed_all(seed + epoch)
+
         for batch in train_loader:
 
             # skip already seen steps if restoring
@@ -124,7 +127,7 @@ def train(
                 optim.step()
                 optim.zero_grad()
             
-            progress_bar.set_description(f"train - e {epoch: <2}, s:{progress_bar.n: <5}, l: {loss.item() * grad_acc_steps:5.3f}, a: {acc.item():5.3f}")
+            progress_bar.set_description(f"train - e:{epoch: <2}, s:{progress_bar.n: <5}, l:{loss.item() * grad_acc_steps:4.3f}, a: {acc.item():4.3f}")
 
             # save checkpoint
             if etc is not None and progress_bar.n % etc == 0:

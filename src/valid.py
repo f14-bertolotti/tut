@@ -26,7 +26,7 @@ def valid(
         cumloss  += loss(logits[batch["labels"] != -100], batch["labels"][batch["labels"] != -100]).nan_to_num().sum().item()
         cumacc   += (logits[batch["labels"] != -100].argmax(-1) == batch["labels"][batch["labels"]!=-100]).float().sum().item()
         preds += (batch["labels"] != -100).float().sum().item()
-        if progress_bar: progress_bar.set_description(f"valid - e {epoch: <2}, s:{i: <5}, l: {cumloss/preds:5.3f}, a: {cumacc/preds:5.3f}")
+        if progress_bar: progress_bar.set_description(f"valid - e:{epoch: <2}, s:{i: <5}, l:{cumloss/preds:4.3f}, a:{cumacc/preds:4.3f}")
 
     logger.info({
         "epoch" : epoch,
