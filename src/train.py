@@ -86,9 +86,9 @@ def train(
     optim    = getattr(torch.optim,opti_name)(model.parameters(), **opti_params)
 
     progress_bar = tqdm.tqdm(total=epochs * len(train_loader), desc='steps')
-    epoch = 0 if restore is None else restore[1] // len(train_loader)
-    progress_bar.n = 0 if restore is None else epoch * len(train_loader)
-        
+    epoch = 0 if restore is None else 1 + restore[1] // len(train_loader)
+    progress_bar.n = 0 if restore is None else epoch * len(train_loader) - 1
+
     # start training
     for epoch in range(epoch,epochs):
         utils.seed_all(seed + epoch)
@@ -99,14 +99,14 @@ def train(
             # this is not great, but i don't know a better way 
             if restore is not None and progress_bar.n < restore[1]: 
                 progress_bar.update(1)
-
-                if progress_bar.n == restore[1]:
-                    model.load(f"{restore[0]}/model{restore[1]}.pth")
-                    try: optim.load_state_dict(torch.load(f"{restore[0]}/optim{restore[1]}.pth"))
-                    except ValueError: pass
-                    if arch_params["tie_word_embeddings"] == False: model.untie()
-
                 continue
+
+            if restore is not None and progress_bar.n == restore[1]:
+                model.load(f"{restore[0]}/model{restore[1]}.pth")
+                try: optim.load_state_dict(torch.load(f"{restore[0]}/optim{restore[1]}.pth"))
+                except ValueError: pass
+                if arch_params["tie_word_embeddings"] == False: model.untie()
+
 
             # move batch to device
             batch  = {k: v.to(device) for k,v in batch.items()}
