@@ -111,6 +111,8 @@ def train(
             if estep < epoch_steps:
                 progress_bar.set_description(f"restoring - {estep*100//epoch_steps: <2}%")
                 continue
+            else:
+                epoch_steps = 0
 
             # train step #######################################################
             optim.zero_grad()
