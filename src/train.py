@@ -20,8 +20,7 @@ import tqdm
 @click.option("--etc"             , "etc"             , type=int                 , default=None   , help="epochs to wait before saving"      )
 @click.option("--etv"             , "etv"             , type=int                 , default=None   , help="epochs to wait before validating"  )
 @click.option("--restore"         , "restore"         , type=click.Path()        , default=None   , help="Path to restore from"              )
-@click.option("--num-workers"     , "num_workers"     , type=int                 , default=0      , help="Number of workers for dataloader"  )
-@click.option("--grad-acc-steps"  , "grad_acc_steps"  , type=int                 , default=1      , help="Gradient accumulation steps"       )
+@click.option("--ioemb-copy"      , "ioemb_copy"      , type=bool                , default=False  , help="Copy input to output embeddings"   )
 @click.option("--arch"            , "arch"            , type=(str, utils.Any())  , default=[]     , help="Model architecture", multiple=True)
 @click.option("--opti"            , "opti"            , type=(str, utils.Any())  , default=[]     , help="Optimizer"         , multiple=True)
 @click.option("--data"            , "data"            , type=(str, utils.Any())  , default=[]     , help="Dataset"           , multiple=True)
@@ -36,9 +35,8 @@ def train(
         etc             : Optional[int] = None   ,
         etv             : Optional[int] = None   ,
         device          : str           = "cuda" ,
-        num_workers     : int           = 0      ,
         restore         : Optional[str] = None   ,
-        grad_acc_steps  : int           = 1      ,
+        ioemb_copy      : bool          = False  ,
         arch            : Tuple[Any]    = tuple(),
         opti            : Tuple[Any]    = tuple(),
         data            : Tuple[Any]    = tuple(),
@@ -60,7 +58,6 @@ def train(
         dataset := getattr(datas,data_name)(split="train", **data_params),
         batch_size     = train_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
-        num_workers    = num_workers         ,
         shuffle        = False               ,
         drop_last      = True                ,
     )
@@ -68,7 +65,6 @@ def train(
         dataset := getattr(datas,data_name)(split="validation", **data_params),
         batch_size     = valid_batch_size    ,
         collate_fn     = dataset.collate_fn  ,
-        num_workers    = num_workers         ,
         shuffle        = False               ,
         drop_last      = False               ,
     )
@@ -76,7 +72,6 @@ def train(
         dataset := getattr(datas,data_name)(split="test", **data_params),
         batch_size     = test_batch_size     ,
         collate_fn     = dataset.collate_fn  ,
-        num_workers    = num_workers         ,
         shuffle        = False               ,
         drop_last      = False               ,
     )
@@ -93,6 +88,7 @@ def train(
     model    = getattr(models        , arch_name)(vocab_size=dataset.tokenizer.vocab_size, **arch_params).to(device)
     optim    = getattr(torch.optim   , opti_name)(model.parameters(), **opti_params)
     compiled = getattr(utils.compiler,  compiler)(model)
+    if ioemb_copy: model.copy_input_to_output_embeddings()
 
     # restore checkpoint #######################################################
     epoch, start_epoch, epoch_steps = 0, 0, 0
@@ -113,7 +109,7 @@ def train(
 
             # skip steps #######################################################
             if estep < epoch_steps:
-                progress_bar.set_description(f"restoring - e:{estep*100//epoch_steps: <2}%")
+                progress_bar.set_description(f"restoring - {estep*100//epoch_steps: <2}%")
                 continue
 
             # train step #######################################################
@@ -127,7 +123,7 @@ def train(
             
             # log stuff ########################################################
             acc = (logits[active].argmax(-1) == labels[active]).float().mean()
-            progress_bar.set_description(f"train - e:{epoch: <2}, s:{progress_bar.n: <5}, l:{loss.item() * grad_acc_steps:4.3f}, a: {acc.item():4.3f}")
+            progress_bar.set_description(f"train - e:{epoch: <2}, s:{progress_bar.n: <5}, l:{loss.item():4.3f}, a: {acc.item():4.3f}")
             train_logger.info({
                 "epoch" : epoch,
                 "step"  : progress_bar.n,

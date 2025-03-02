@@ -60,3 +60,7 @@ class Model(torch.nn.Module):
     def get_output_embeddings(self):
         return self.input_embeddings.weight if self.tied else self.output_embeddings
 
+    @torch.no_grad()
+    def copy_input_to_output_embeddings(self):
+        self.output_embeddings.data = self.input_embeddings.weight.data
+

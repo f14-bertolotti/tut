@@ -2,17 +2,17 @@ DEVICE="cuda:0"
 
 EPOCHS=30
 ETC=100000
-RPT=100000
 COMPILER=basic
 DATASIZE=None
 RESTORE=""
 TIED=False
+IOEMB=False
 
 venv/bin/python:
 	virtualenv venv
 	venv/bin/pip install -r requirements.txt
 
-data/bert-u/lastmodel.pth: venv/bin/python
+data/%/final.pt: venv/bin/python
 	mkdir -p $(dir $@)
 	venv/bin/python src/train.py \
 		--dir $(dir $@) \
@@ -21,9 +21,9 @@ data/bert-u/lastmodel.pth: venv/bin/python
 		--epochs $(EPOCHS) \
 		--train-batch-size 128 \
 		--valid-batch-size 64 \
-		--grad-acc-steps 1 \
 		--device $(DEVICE) \
 		--compiler $(COMPILER) \
+		--ioemb-copy $(IOEMB) \
 		--data "name" "Wikitext" \
 		--data "dataset_size" $(DATASIZE) \
 		--opti "name" "AdamW" \
