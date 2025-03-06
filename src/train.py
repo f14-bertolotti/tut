@@ -84,13 +84,9 @@ def train(
     test_logger  = utils.get_logger(f"{dir}/test.jsonl")
     progress_bar = tqdm.tqdm(total=epochs * len(train_loader), desc='steps')
 
-    # model and optimizer ######################################################
+    # model ####################################################################
     model    = getattr(models        , arch_name)(vocab_size=dataset.tokenizer.vocab_size, **arch_params).to(device)
-    optim    = getattr(torch.optim   , opti_name)(model.parameters(), **opti_params)
     compiled = getattr(utils.compiler,  compiler)(model)
-    if ioemb_copy: model.copy_input_to_output_embeddings()
-
-    # restore checkpoint #######################################################
     epoch, start_epoch, epoch_steps = 0, 0, 0
     if restore:
         checkpoint     = torch.load(restore)
@@ -99,6 +95,14 @@ def train(
         progress_bar.n = checkpoint[ "step"]
         seed           = checkpoint[ "seed"]
         model.load_state_dict(checkpoint["model"])
+
+    # copying input to output embeddings #######################################
+    if ioemb_copy: model.copy_input_to_output_embeddings()
+
+    # optimizer ################################################################
+    optim = getattr(torch.optim   , opti_name)(model.parameters(), **opti_params)
+    if restore:
+        checkpoint = torch.load(restore)
         optim.load_state_dict(checkpoint["optim"])
 
     # start training ###########################################################

@@ -27,7 +27,7 @@ data/%/final.pt: venv/bin/python
 		--data "name" "Wikitext" \
 		--data "dataset_size" $(DATASIZE) \
 		--opti "name" "AdamW" \
-		--opti "lr" 0.0005 \
+		--opti "lr" 0.0001 \
 		--opti "weight_decay" 0.01 \
 		--arch "name" "Bert" \
 		--arch "hidden_size" 512 \

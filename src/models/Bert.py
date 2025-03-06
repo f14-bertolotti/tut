@@ -20,7 +20,6 @@ class Model(torch.nn.Module):
         super(Model, self).__init__()
 
         self. input_embeddings = torch.nn.Embedding(vocab_size, hidden_size, padding_idx=0)
-        self.   pos_embeddings = torch.nn.Parameter(torch.empty(max_position_embeddings, hidden_size), requires_grad=True)
         self.output_embeddings = torch.nn.Parameter(torch.empty(vocab_size, hidden_size), requires_grad=True) 
         self.layer_norm = torch.nn.LayerNorm(hidden_size, eps=layer_norm_eps)
         self.tied = tie_word_embeddings
@@ -37,6 +36,7 @@ class Model(torch.nn.Module):
                 max_position_embeddings = max_position_embeddings ,
                 initializer_range       = initializer_range       , 
                 layer_norm_eps          = layer_norm_eps          , 
+                position_embedding_type = "relative_key_query"
             )
         )
  
@@ -44,12 +44,11 @@ class Model(torch.nn.Module):
         with torch.no_grad():
             self. input_embeddings.weight.normal_(mean=0.0, std=initializer_range)
             self.output_embeddings       .normal_(mean=0.0, std=initializer_range)
-            self.   pos_embeddings       .normal_(mean=0.0, std=initializer_range)
             self. input_embeddings.weight[0].zero_()
             self.output_embeddings       [0].zero_()
 
     def forward(self, input_ids, attention_mask):
-        embeddings = self.layer_norm(self.input_embeddings(input_ids) + self.pos_embeddings[:input_ids.size(1)])
+        embeddings = self.layer_norm(self.input_embeddings(input_ids))
         encoded = self.encoder(inputs_embeds=embeddings, attention_mask = attention_mask.bool())
         logits = encoded.last_hidden_state @ self.get_output_embeddings().T
         return logits
@@ -62,5 +61,5 @@ class Model(torch.nn.Module):
 
     @torch.no_grad()
     def copy_input_to_output_embeddings(self):
-        self.output_embeddings.data = self.input_embeddings.weight.data
+        self.output_embeddings = torch.nn.Parameter(self.input_embeddings.weight.detach().clone())
 
