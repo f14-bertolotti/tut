@@ -79,23 +79,4 @@ The training script generates the following output:
 * Log files: `train.jsonl`, `valid.jsonl`, `test.jsonl` containing training, validation, and testing metrics.
 * state.json: state of the run.
 
-## Usage Examples
-
-* **Train on GPU 1 for 50 epochs:**
-
-    ```bash
-    make DEVICE="cuda:1" EPOCHS=50 data/model/final.pt
-    ```
-
-* **Restore from a checkpoint:**
-
-    ```bash
-    make RESTORE="data/model/checkpoint100000.pt" data/model/final.pt
-    ```
-
-* **Change the hidden size of the model:**
-
-    ```bash
-    make arch="name" "Bert" "hidden_size" "768" data/model/final.pt
-    ```
 
